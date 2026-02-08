@@ -9,6 +9,7 @@ import { normalizeAgentId, parseAgentSessionKey } from "../../routing/session-ke
 import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
 import { resolveAgentConfig } from "../agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
+import { resolveDefaultModelForAgent } from "../model-selection.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
 import { getSubagentDepthFromSessionStore } from "../subagent-depth.js";
@@ -178,11 +179,16 @@ export function createSessionsSpawnTool(opts?: {
       const childDepth = callerDepth + 1;
       const spawnedByKey = requesterInternalKey;
       const targetAgentConfig = resolveAgentConfig(cfg, targetAgentId);
+      const runtimeDefaultModel = resolveDefaultModelForAgent({
+        cfg,
+        agentId: targetAgentId,
+      });
       const resolvedModel =
         normalizeModelSelection(modelOverride) ??
         normalizeModelSelection(targetAgentConfig?.subagents?.model) ??
         normalizeModelSelection(cfg.agents?.defaults?.subagents?.model) ??
-        normalizeModelSelection(cfg.agents?.defaults?.model?.primary);
+        normalizeModelSelection(cfg.agents?.defaults?.model?.primary) ??
+        normalizeModelSelection(`${runtimeDefaultModel.provider}/${runtimeDefaultModel.model}`);
 
       const resolvedThinkingDefaultRaw =
         readStringParam(targetAgentConfig?.subagents ?? {}, "thinking") ??
