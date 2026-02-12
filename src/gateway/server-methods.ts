@@ -33,7 +33,16 @@ const APPROVALS_SCOPE = "operator.approvals";
 const PAIRING_SCOPE = "operator.pairing";
 
 const APPROVAL_METHODS = new Set(["exec.approval.request", "exec.approval.resolve"]);
-const NODE_ROLE_METHODS = new Set(["node.invoke.result", "node.event", "skills.bins"]);
+const NODE_ONLY_METHODS = new Set(["node.invoke.result", "node.event", "skills.bins"]);
+// Node clients (iOS/Android) embed chat UI and need these RPCs.
+const NODE_ALLOWED_METHODS = new Set([
+  ...NODE_ONLY_METHODS,
+  "health",
+  "sessions.list",
+  "chat.history",
+  "chat.send",
+  "chat.abort",
+]);
 const PAIRING_METHODS = new Set([
   "node.pair.request",
   "node.pair.list",
@@ -96,13 +105,16 @@ function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["c
   }
   const role = client.connect.role ?? "operator";
   const scopes = client.connect.scopes ?? [];
-  if (NODE_ROLE_METHODS.has(method)) {
+  if (NODE_ONLY_METHODS.has(method)) {
     if (role === "node") {
       return null;
     }
     return errorShape(ErrorCodes.INVALID_REQUEST, `unauthorized role: ${role}`);
   }
   if (role === "node") {
+    if (NODE_ALLOWED_METHODS.has(method)) {
+      return null;
+    }
     return errorShape(ErrorCodes.INVALID_REQUEST, `unauthorized role: ${role}`);
   }
   if (role !== "operator") {

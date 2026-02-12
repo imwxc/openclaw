@@ -148,6 +148,23 @@ describe("gateway role enforcement", () => {
       expect(binsRes.ok).toBe(true);
       expect(Array.isArray(binsRes.payload?.bins)).toBe(true);
 
+      const healthRes = await rpcReq<{ ok?: boolean }>(nodeWs, "health", {});
+      expect(healthRes.ok).toBe(true);
+      expect(healthRes.payload?.ok).toBe(true);
+
+      const historyRes = await rpcReq<{ messages?: unknown[] }>(nodeWs, "chat.history", {
+        sessionKey: "main",
+      });
+      expect(historyRes.ok).toBe(true);
+      expect(Array.isArray(historyRes.payload?.messages)).toBe(true);
+
+      const sessionsRes = await rpcReq<{ sessions?: unknown[] }>(nodeWs, "sessions.list", {
+        includeGlobal: true,
+        includeUnknown: false,
+      });
+      expect(sessionsRes.ok).toBe(true);
+      expect(Array.isArray(sessionsRes.payload?.sessions)).toBe(true);
+
       const statusRes = await rpcReq(nodeWs, "status", {});
       expect(statusRes.ok).toBe(false);
       expect(statusRes.error?.message ?? "").toContain("unauthorized role");
